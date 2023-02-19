@@ -1,27 +1,29 @@
 import smartpy as sp
 
 class CrowdFunding(sp.Contract):
-    def __init__(self,target,deadline,minContribution,admin):
-        self.init(
-            # ob = CrowdFunding(sp.tez(5), sp.nat(5), sp.tez(1),admin.address)
-        contributors = sp.big_map(tkey = sp.TAddress, tvalue = sp.TNat),
-        minContribution = minContribution,
-        target = target,
-        raisedAmount = sp.TNat,
-        noOfContributions = sp.TNat,
-        manager = admin,
-        deadline = sp.TTimestamp,
-            
-        request = sp.TRecord(
+    def __init__(self,target,deadlineH,minContribution,admin):
+        requestPARAM = sp.TRecord(
             description = sp.TString,
             recipient = sp.TAddress,
             value = sp.TNat,
             completed = sp.TBool,
-            noOfVoters = sp.TNat,
-            #voters = sp.big_map(tkey = sp.TAddress, tvalue = sp.TBool)
-        ),
+            noOfVoters = sp.TNat
+            # voters = sp.big_map(tkey = sp.TAddress, tvalue = sp.TBool)
+        )
+        
+        self.init(
+            # ob = CrowdFunding(sp.tez(5), sp.nat(5), sp.tez(1),admin.address)
+        contributors = sp.big_map(tkey = sp.TAddress, tvalue = sp.TMutez),
+        minContribution = minContribution,
+        target = target,
+        raisedAmount = sp.mutez(0),
+        manager = admin,
+        deadline = sp.now.add_hours(deadlineH),
 
-        #requests = sp.big_map(tkey = sp.TNat, tvalue = request)
+        requests = sp.big_map(tkey = sp.TNat, tvalue = requestPARAM),
+        voters = sp.big_map(tkey = sp.TRecord(id = sp.TNat , add= sp.TAddress) , tvalue = sp.TBool)
+
+            
         )
 
     @sp.entry_point
@@ -32,16 +34,22 @@ class CrowdFunding(sp.Contract):
         sp.verify(sp.amount>= self.data.minContribution, "Minimun contribution not met")
 
         #storage updates
-        self.data.noOfContributors = self.data.noOfContributors + 1;
         self.data.raisedAmount = self.data.raisedAmount + sp.amount
-        self.data.contributors[sp.sender] = self.data.contributors[sp.sender] + sp.amount
+
+        sp.if self.data.contributors.contains(sp.sender):
+            self.data.contributors[sp.sender] = self.data.contributors[sp.sender] + sp.amount
+        sp.else:
+            self.data.contributors[sp.sender] = sp.amount
+            
+        
 
     @sp.entry_point
     def refund(self):
 
         #checks
-        sp.verify(sp.now>self.data.deadline & self.data.raisedAmount<self.data.target, "You are not eligible")
-        sp.verify(self.data.contributors[sp.sender]>0)
+        sp.verify(sp.now>self.data.deadline , "You are not eligible")
+        sp.verify(self.data.raisedAmount<self.data.target , "You are not eligible")
+        sp.verify(self.data.contributors[sp.sender] > sp.mutez(0))
         sp.send(sp.sender,self.data.contributors[sp.sender])
         self.data.contributors[sp.sender] = sp.tez(0)
 
@@ -53,7 +61,6 @@ class CrowdFunding(sp.Contract):
         alice = sp.test_account("alice")
         bob = sp.test_account("bob")
 
-        ob = CrowdFunding(sp.tez(5), sp.nat(5), sp.tez(1),admin.address)
+        ob = CrowdFunding(sp.tez(5), sp.int(5), sp.tez(1),admin.address)
         scenario+=ob
         scenario += ob.receive().run(amount = sp.tez(1), sender = alice)
-
