@@ -41,8 +41,6 @@ class CrowdFunding(sp.Contract):
         sp.else:
             self.data.contributors[sp.sender] = sp.amount
             
-        
-
     @sp.entry_point
     def refund(self):
 
@@ -52,6 +50,26 @@ class CrowdFunding(sp.Contract):
         sp.verify(self.data.contributors[sp.sender] > sp.mutez(0))
         sp.send(sp.sender,self.data.contributors[sp.sender])
         self.data.contributors[sp.sender] = sp.tez(0)
+
+    @sp.entry_point
+    def createRequest(self,params):
+
+        #checks
+        sp.verify(sp.sender == self.data.manager, "Only Manager can create requests")
+        
+        requestPARAM.description = params._description
+        requestPARAM.recipient = params._recipient
+        requestPARAM.value = params._value
+        requestPARAM.completed = params._false
+        requestPARAM.noOfVoters = 0
+
+    @sp.entry_point
+    def voteRequest(self,requestNo, _vote):
+
+        #checks
+        sp.verify(contributors[sp.sender]>sp.mutez(0), "You must be a contributor")
+        requestPARAM.noOfVoters++
+        
 
     @sp.add_test(name = "CrowdFund")
     def test():
