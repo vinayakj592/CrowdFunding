@@ -13,17 +13,15 @@ class CrowdFunding(sp.Contract):
         
         self.init(
             # ob = CrowdFunding(sp.tez(5), sp.nat(5), sp.tez(1),admin.address)
-        contributors = sp.big_map(tkey = sp.TAddress, tvalue = sp.TMutez),
+        contributors = sp.map(tkey = sp.TAddress, tvalue = sp.TMutez),
         minContribution = minContribution,
         target = target,
         raisedAmount = sp.mutez(0),
         manager = admin,
         deadline = sp.now.add_hours(deadlineH),
-
+        reqid = sp.nat(0),
         requests = sp.big_map(tkey = sp.TNat, tvalue = requestPARAM),
-        voters = sp.big_map(tkey = sp.TRecord(id = sp.TNat , add= sp.TAddress) , tvalue = sp.TBool)
-
-            
+        voters = sp.big_map(tkey = sp.TRecord(id = sp.TNat , add= sp.TAddress) , tvalue = sp.TBool)  
         )
 
     @sp.entry_point
@@ -54,22 +52,37 @@ class CrowdFunding(sp.Contract):
     @sp.entry_point
     def createRequest(self,params):
 
+        #sp.set_type(params,requestPARAM)
         #checks
         sp.verify(sp.sender == self.data.manager, "Only Manager can create requests")
-        
-        requestPARAM.description = params._description
-        requestPARAM.recipient = params._recipient
-        requestPARAM.value = params._value
-        requestPARAM.completed = params._false
-        requestPARAM.noOfVoters = 0
+        self.data.requests[self.data.reqid] = sp.record(
+            description =  params._description,
+            recipient = params._recipient,
+            value = params._value,
+            completed = sp.bool(False),
+            noOfVoters = sp.nat(0))
+        self.data.reqid = self.data.reqid+1
 
     @sp.entry_point
     def voteRequest(self,requestNo, _vote):
 
         #checks
-        sp.verify(contributors[sp.sender]>sp.mutez(0), "You must be a contributor")
-        requestPARAM.noOfVoters++
-        
+        sp.verify(self.data.contributors[sp.sender]>sp.mutez(0), "You must be a contributor")
+        sp.verify(self.data.requests.contains(requestNo),"Request not available")
+        sp.verify(~self.data.voters.contains(sp.record(id = requestNo, add = sp.sender)), "Already voted")
+        self.data.voters[sp.record(id = requestNo, add = sp.sender)] = _vote
+        sp.if _vote == sp.bool(True) :
+            self.data.requests[requestNo].noOfVoters = self.data.requests[requestNo].noOfVoters+1
+
+    @sp.entry_point
+    def makePayment(self, requestNo):
+
+        #checks
+        sp.verify(sp.sender == self.data.manager, "Only Manager can create requests")
+        sp.verify(self.data.requests[requestNo].noOfVoters > (sp.len(self.data.contributors)//2) , "Minimun voters requriment not met")
+        sp.verify(self.data.requests[requestNo].completed == False, "Request already completed")
+        sp.send(self.data.requests[requestNo].recipient, sp.utils.nat_to_mutez(self.data.requests[requestNo].value))
+        self.data.requests[requestNo].completed = True
 
     @sp.add_test(name = "CrowdFund")
     def test():
@@ -78,7 +91,30 @@ class CrowdFunding(sp.Contract):
         admin = sp.test_account("admin")
         alice = sp.test_account("alice")
         bob = sp.test_account("bob")
+        jack = sp.test_account("jack")
 
         ob = CrowdFunding(sp.tez(5), sp.int(5), sp.tez(1),admin.address)
         scenario+=ob
         scenario += ob.receive().run(amount = sp.tez(1), sender = alice)
+        scenario += ob.receive().run(amount = sp.tez(3), sender = bob)
+        scenario += ob.receive().run(amount = sp.tez(1), sender = jack)
+
+        scenario += ob.createRequest(
+            _description = "Want money for raw materials",
+            _recipient = bob.address,
+            _value = 2000000
+        ).run(sender = admin)
+        
+        scenario += ob.voteRequest(
+            requestNo = sp.nat(0),
+            _vote = True
+        ).run(sender = alice)
+
+        scenario += ob.voteRequest(
+            requestNo = sp.nat(0),
+            _vote = True
+        ).run(sender = jack)
+
+        scenario += ob.makePayment(
+            sp.nat(0)
+        ).run(sender = admin)
