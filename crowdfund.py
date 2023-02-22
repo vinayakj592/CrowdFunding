@@ -8,11 +8,9 @@ class CrowdFunding(sp.Contract):
             value = sp.TNat,
             completed = sp.TBool,
             noOfVoters = sp.TNat
-            # voters = sp.big_map(tkey = sp.TAddress, tvalue = sp.TBool)
         )
         
         self.init(
-            # ob = CrowdFunding(sp.tez(5), sp.nat(5), sp.tez(1),admin.address)
         contributors = sp.map(tkey = sp.TAddress, tvalue = sp.TMutez),
         minContribution = minContribution,
         target = target,
@@ -33,7 +31,6 @@ class CrowdFunding(sp.Contract):
 
         #storage updates
         self.data.raisedAmount = self.data.raisedAmount + sp.amount
-
         sp.if self.data.contributors.contains(sp.sender):
             self.data.contributors[sp.sender] = self.data.contributors[sp.sender] + sp.amount
         sp.else:
@@ -52,7 +49,6 @@ class CrowdFunding(sp.Contract):
     @sp.entry_point
     def createRequest(self,params):
 
-        #sp.set_type(params,requestPARAM)
         #checks
         sp.verify(sp.sender == self.data.manager, "Only Manager can create requests")
         self.data.requests[self.data.reqid] = sp.record(
@@ -92,18 +88,29 @@ class CrowdFunding(sp.Contract):
         alice = sp.test_account("alice")
         bob = sp.test_account("bob")
         jack = sp.test_account("jack")
+        mike = sp.test_account("mike")
 
         ob = CrowdFunding(sp.tez(5), sp.int(5), sp.tez(1),admin.address)
         scenario+=ob
         scenario += ob.receive().run(amount = sp.tez(1), sender = alice)
-        scenario += ob.receive().run(amount = sp.tez(3), sender = bob)
+        scenario += ob.receive().run(amount = sp.tez(2), sender = bob)
         scenario += ob.receive().run(amount = sp.tez(1), sender = jack)
+        scenario += ob.receive().run(amount = sp.tez(2), sender = mike, now = sp.timestamp(180001),valid  = False)
+
+        scenario += ob.refund(
+        ).run(sender = alice,valid = False)
 
         scenario += ob.createRequest(
             _description = "Want money for raw materials",
             _recipient = bob.address,
             _value = 2000000
         ).run(sender = admin)
+
+        scenario += ob.createRequest(
+            _description = "Want money for shopping",
+            _recipient = bob.address,
+            _value = 2000000
+        ).run(sender = bob, valid = False)
         
         scenario += ob.voteRequest(
             requestNo = sp.nat(0),
@@ -113,6 +120,16 @@ class CrowdFunding(sp.Contract):
         scenario += ob.voteRequest(
             requestNo = sp.nat(0),
             _vote = True
+        ).run(sender = bob)
+
+        scenario += ob.voteRequest(
+            requestNo = sp.nat(0),
+            _vote = True
+        ).run(sender = bob,valid = False)
+
+        scenario += ob.voteRequest(
+            requestNo = sp.nat(0),
+            _vote = False
         ).run(sender = jack)
 
         scenario += ob.makePayment(
