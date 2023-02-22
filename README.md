@@ -23,8 +23,7 @@ If over 50% of the contributors vote "True" for a specific request, the campaign
 
 ## Contract
 
-Address : KT1Msor4MoSNjxaKHGK9ViRsyUKY7cD4XPRj
-
+Address : KT1Msor4MoSNjxaKHGK9ViRsyUKY7cD4XPRj\
 [Explore with TzKT](https://ghostnet.tzkt.io/KT1Msor4MoSNjxaKHGK9ViRsyUKY7cD4XPRj/operations/)
 
 ## Contributing
