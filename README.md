@@ -1,2 +1,1 @@
-![banner for contract](https://user-images.githubusercontent.com/85495019/220703268-b56c6244-1f39-430e-995d-9c9518030f59.png)
-# CrowdFunding
+![banner](https://user-images.githubusercontent.com/85495019/220703960-bb7221c2-abd8-4e68-8c97-9177d1427197.png)
