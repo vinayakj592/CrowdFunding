@@ -1,6 +1,6 @@
 ![banner](https://user-images.githubusercontent.com/85495019/220703960-bb7221c2-abd8-4e68-8c97-9177d1427197.png)
 
-![GitHub last commit](https://img.shields.io/github/last-commit/vinayakj592/CrowdFunding) ![GitHub](https://img.shields.io/github/license/vinayakj592/crowdFunding)
+![GitHub last commit](https://img.shields.io/github/last-commit/vinayakj592/CrowdFunding)   ![GitHub](https://img.shields.io/github/license/vinayakj592/crowdFunding)
 
 This is a Tezos blockchain-based crowdfunding contract developed using the SmartPy smart contract development platform. It enables the creation of crowdfunding campaigns, where backers can pledge funds and the campaign creator can submit requests to withdraw funds for specific purposes. The withdrawal request is then subjected to a voting process by the backers, which takes place if the funding goal is met within a specified time period.
 
